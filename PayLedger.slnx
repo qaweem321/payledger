@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PayLedger.Api/PayLedger.Api.csproj" />
+    <Project Path="src/PayLedger.Application/PayLedger.Application.csproj" />
+    <Project Path="src/PayLedger.Domain/PayLedger.Domain.csproj" />
+    <Project Path="src/PayLedger.Infrastructure/PayLedger.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PayLedger.IntegrationTests/PayLedger.IntegrationTests.csproj" />
+    <Project Path="tests/PayLedger.UnitTests/PayLedger.UnitTests.csproj" />
+  </Folder>
+</Solution>

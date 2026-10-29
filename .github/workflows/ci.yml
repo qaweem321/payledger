@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build, format, migrations, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore
+      - run: dotnet tool restore
+      - name: Code style (dotnet format)
+        run: dotnet format --verify-no-changes --no-restore
+      - name: Build (warnings and vulnerable packages fail it)
+        run: dotnet build -c Release --no-restore
+      - name: Migrations match the model
+        run: dotnet ef migrations has-pending-model-changes -p src/PayLedger.Infrastructure -s src/PayLedger.Api --no-build --configuration Release
+      - name: Unit tests
+        run: dotnet test --project tests/PayLedger.UnitTests -c Release --no-build
+      - name: Integration tests (real SQL Server via Testcontainers)
+        run: dotnet test --project tests/PayLedger.IntegrationTests -c Release --no-build
+
+  docker:
+    name: Docker image and Compose file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: docker build -t payledger:ci .
+      - run: MSSQL_SA_PASSWORD=Ci-Password-123 docker compose config --quiet
+
+  commits:
+    name: Commit messages follow Conventional Commits
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
